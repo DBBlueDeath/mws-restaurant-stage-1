@@ -1,8 +1,9 @@
-const version = '0.8.2';
-let cn = 'mws-1-'  + version;
-let fcn = 'f-mws-1-'  + version;
+const version = '0.9.3';
+let cn = 'mws-2-'  + version;
+let fcn = 'f-mws-2-'  + version;
 
 const urlsToCache = [
+    './',
     './index.html',
     './restaurant.html',
     './css/styles.css',
@@ -11,6 +12,7 @@ const urlsToCache = [
     './js/dbhelper.js',
     './js/main.js',
     './js/restaurant_info.js',
+    './js/dexie.js',
     './img/1.jpg',
     './img/2.jpg',
     './img/3.jpg',
@@ -58,6 +60,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', function (event) {
     console.log('Fetch: ', event.request.url);
     let requestUrl = new URL(event.request.url);
+
+    if (event.request.method != 'GET') {
+        return;
+    }
 
     if (requestUrl.origin === location.origin) {
 // First look in network for the freshest resources

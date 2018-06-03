@@ -6,6 +6,15 @@
     <title>Restaurant Reviews</title>
     <link rel="stylesheet" href="css/normalize.css"/>
     <link rel="stylesheet" href="css/styles.css">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Restaurant Reviews">
+    <link rel="apple-touch-icon" href="img/logo.png">
+    <meta name="msapplication-TileImage" content="img/logo.png">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#333333"/>
 </head>
 
 <body>
@@ -35,6 +44,7 @@
     </section>
 </main>
 
+<script src="js/dexie.js"></script>
 <script src="js/dbhelper.js"></script>
 <script src="js/main.js"></script>
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap"></script>

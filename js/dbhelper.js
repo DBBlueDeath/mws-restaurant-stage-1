@@ -3,33 +3,93 @@
  */
 class DBHelper
 {
-    /**
-     * Database URL.
-     * Change this to restaurants.json file location on your server.
-     */
-    static get DATABASE_URL() {
-        const port = 8000 // Change this to your server port
-        return `http://localhost:${port}/data/restaurants.json`;
-    }
+    static getUrl() { return  'http://localhost:1337/restaurants'; }
+    static getFile() { return './data/restaurants.json'; }
 
     /**
      * Fetch all restaurants.
      */
     static fetchRestaurants(callback) {
-        let xhr = new XMLHttpRequest();
-        xhr.open('GET', DBHelper.DATABASE_URL);
-        xhr.onload = () => {
-            if (xhr.status === 200) { // Got a success response from server!
-                const json = JSON.parse(xhr.responseText);
-                const restaurants = json.restaurants;
+        const db = new Dexie('MyDatabase');
+        DBHelper.resolved = 0;
+        DBHelper.db = db;
+
+        // Declare tables, IDs and indexes
+        db.version(1).stores({
+            restaurants: '++id, name, neighborhood, cuisine_type'
+        });
+
+        db.restaurants.toArray().then(function(restaurants) {
+            console.log('IDB data ', restaurants);
+            if (restaurants.length > 0) {
+                DBHelper.resolved = 1;
                 callback(null, restaurants);
-            } else { // Oops!. Got an error from server.
-                const error = (`Request failed. Returned status of ${xhr.status}`);
-                callback(error, null);
+            } else {
+                console.log('IDB empty, fetch needed');
             }
-        };
-        xhr.send();
+        }).catch(function(error) {
+            console.log('IDB get err', error);
+        });
+
+        fetch(DBHelper.getUrl())
+            .then(DBHelper.handleErrors)
+            .then(function (response) {
+                let a = response.json();
+                console.log('DB Fetch1 response', a);
+                return a;
+            })
+            .then(restaurants => DBHelper.storeInDB(restaurants))
+            .then(function (restaurants) {
+                if (!DBHelper.resolved) {
+                    DBHelper.resolved = 1;
+                    callback(null, restaurants);
+                } else {
+                    console.log('DB Fetch render1 skip')
+                }
+            })
+            .catch(function (error) {
+                console.log('Error: remote request failed, getting data from local file', error);
+
+                fetch(DBHelper.getFile())
+                    .then(DBHelper.handleErrors)
+                    .then(function (response) {
+                        let a = response.json();
+                        console.log('DB Fetch2 response', a);
+                        return a;
+                    })
+                    .then(restaurants => DBHelper.storeInDB(restaurants.restaurants))
+                    .then(function (restaurants) {
+                        if (!DBHelper.resolved) {
+                            DBHelper.resolved = 1;
+                            callback(null, restaurants);
+                        } else {
+                            console.log('DB Fetch2 render skip')
+                        }
+                    })
+                    .catch(e => callback(e, null));
+            })
     }
+
+    static handleErrors(response) {
+        if (!response.ok) {
+            throw Error(response.statusText);
+        }
+
+        return response;
+    }
+
+    static storeInDB(restaurants) {
+        DBHelper.db.restaurants
+            .where('id').above(0)
+            .delete();
+
+        DBHelper.db.restaurants.bulkAdd(restaurants);
+
+        console.log('IDB update');
+
+        return restaurants;
+    }
+
 
     /**
      * Fetch a restaurant by its ID.
