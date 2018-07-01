@@ -2,6 +2,7 @@
   "restaurants": [
     {
       "id": 1,
+      "is_favorite": 0,
       "name": "Mission Chinese Food",
       "neighborhood": "Manhattan",
       "photograph": "1",
@@ -43,6 +44,7 @@
     },
     {
       "id": 2,
+      "is_favorite": 0,
       "name": "Emily",
       "neighborhood": "Brooklyn",
       "photograph": "2",
@@ -84,6 +86,7 @@
     },
     {
       "id": 3,
+      "is_favorite": 0,
       "name": "Kang Ho Dong Baekjeong",
       "neighborhood": "Manhattan",
       "photograph": "3",
@@ -125,6 +128,7 @@
     },
     {
       "id": 4,
+      "is_favorite": 0,
       "name": "Katz's Delicatessen",
       "neighborhood": "Manhattan",
       "photograph": "4",
@@ -166,6 +170,7 @@
     },
     {
       "id": 5,
+      "is_favorite": 0,
       "name": "Roberta's Pizza",
       "neighborhood": "Brooklyn",
       "photograph": "5",
@@ -207,6 +212,7 @@
     },
     {
       "id": 6,
+      "is_favorite": 0,
       "name": "Hometown BBQ",
       "neighborhood": "Brooklyn",
       "photograph": "6",
@@ -248,6 +254,7 @@
     },
     {
       "id": 7,
+      "is_favorite": 0,
       "name": "Superiority Burger",
       "neighborhood": "Manhattan",
       "photograph": "7",
@@ -289,6 +296,7 @@
     },
     {
       "id": 8,
+      "is_favorite": 0,
       "name": "The Dutch",
       "neighborhood": "Manhattan",
       "photograph": "8",
@@ -330,6 +338,7 @@
     },
     {
       "id": 9,
+      "is_favorite": 0,
       "name": "Mu Ramen",
       "neighborhood": "Queens",
       "photograph": "9",
@@ -371,6 +380,7 @@
     },
     {
       "id": 10,
+      "is_favorite": 0,
       "name": "Casa Enrique",
       "neighborhood": "Queens",
       "photograph": "10",

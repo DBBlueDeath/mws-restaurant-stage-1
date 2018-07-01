@@ -211,6 +211,16 @@ nav h1 a {
     text-transform: uppercase;
 }
 
+
+#favorites-select {
+    display: inline-block;
+    font-size: 10pt;
+    margin: 15px 0 0;
+    padding: 8px 30px 10px;
+    text-align: center;
+    text-decoration: none;
+}
+
 /* ====================== Restaurant Details ====================== */
 .inside header {
     position: fixed;
@@ -280,11 +290,11 @@ nav h1 a {
     width: 50%;
 }
 
-#reviews-container {
+#reviews-container, #review-form-container {
     padding: 30px 40px 80px;
 }
 
-#reviews-container h2 {
+#reviews-container h2, #review-form-container h2 {
     color: #b40;
     font-size: 24pt;
     font-weight: 300;
@@ -341,6 +351,33 @@ nav h1 a {
     display: inline;
 }
 
+
+#favorites-select[data-state='1'] {
+    background-color: #55ff55;
+}
+
+.favorite {
+    color: black !important;
+    background-color: #aaa !important;
+    font-weight: 400;
+}
+
+.favorite.active {
+    background-color: #8f8 !important;
+}
+
+#review-form-container button {
+    background-color: #b40;
+    border-bottom: 3px solid #eee;
+    color: #fff;
+    display: inline-block;
+    font-size: 10pt;
+    margin: 15px 0 0;
+    padding: 8px 30px 10px;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+}
 
 
 @media screen and (max-width: 600px) {

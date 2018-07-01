@@ -19,6 +19,7 @@ window.initMap = () => {
         }
     });
 };
+window.onload = initMap;
 
 /**
  * Get current restaurant from page URL.

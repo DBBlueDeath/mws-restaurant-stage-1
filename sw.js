@@ -1,6 +1,6 @@
-const version = '0.9.3';
-let cn = 'mws-2-'  + version;
-let fcn = 'f-mws-2-'  + version;
+const version = '0.9.4';
+let cn = 'mws-3-'  + version;
+let fcn = 'f-mws-3-'  + version;
 
 const urlsToCache = [
     './',

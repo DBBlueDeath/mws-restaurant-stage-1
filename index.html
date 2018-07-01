@@ -39,6 +39,8 @@
             <select id="cuisines-select" name="cuisines" onchange="updateRestaurants()" aria-label="Filter Cuisines">
                 <option value="all">All Cuisines</option>
             </select>
+            <label for="favorites-select">Favorites:</label>
+            <button id="favorites-select" name="cuisines" onclick="updateFavoriteButton();" aria-label="Filter Favorites" data-state="0">Favorites</button>
         </div>
         <ul id="restaurants-list" role="list"></ul>
     </section>
@@ -47,7 +49,7 @@
 <script src="js/dexie.js"></script>
 <script src="js/dbhelper.js"></script>
 <script src="js/main.js"></script>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places&callback=initMap"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places"></script>
 
 
 <footer id="footer">

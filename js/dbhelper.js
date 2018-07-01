@@ -3,15 +3,18 @@
  */
 class DBHelper
 {
-    static getUrl() { return  'http://localhost:1337/restaurants'; }
+    static getUrl() { return  '//localhost:1337/'; }
     static getFile() { return './data/restaurants.json'; }
 
     /**
      * Fetch all restaurants.
      */
-    static fetchRestaurants(callback) {
+    static fetchRestaurants(callback)
+    {
         const db = new Dexie('MyDatabase');
-        DBHelper.resolved = 0;
+        if (DBHelper.resolved == undefined) {
+            DBHelper.resolved = 0;
+        }
         DBHelper.db = db;
 
         // Declare tables, IDs and indexes
@@ -23,54 +26,108 @@ class DBHelper
             console.log('IDB data ', restaurants);
             if (restaurants.length > 0) {
                 DBHelper.resolved = 1;
+
                 callback(null, restaurants);
             } else {
                 console.log('IDB empty, fetch needed');
             }
         }).catch(function(error) {
             console.log('IDB get err', error);
-        });
+        }).then(function() {
+            fetch(DBHelper.getUrl() + 'restaurants')
+                .then(DBHelper.handleErrors)
+                .then(function (response) {
+                    let a = response.json();
+                    console.log('DB Fetch1 response', a);
+                    return a;
+                })
+                .then(restaurants => DBHelper.storeInDB(restaurants))
+                .then(function (restaurants) {
+                    // push offline data
+                    DBHelper.pushReviewsIfNeeded(restaurants);
 
-        fetch(DBHelper.getUrl())
+                    if (!DBHelper.resolved) {
+                        DBHelper.resolved = 1;
+
+                        callback(null, restaurants);
+                    } else {
+                        console.log('DB Fetch render1 skip')
+                    }
+
+                    return restaurants;
+                })
+                .then(restaurants => DBHelper.fetchReviews(restaurants)) // fetch reviews
+                .catch(function (error) {
+                    console.log('Error: remote request failed, getting data from local file', error);
+
+                    fetch(DBHelper.getFile())
+                        .then(DBHelper.handleErrors)
+                        .then(function (response) {
+                            let a = response.json();
+                            console.log('DB Fetch2 response', a);
+                            return a;
+                        })
+                        .then(function (restaurants) {
+                            if (!DBHelper.resolved) {
+                                DBHelper.storeInDB(restaurants.restaurants);
+                                DBHelper.resolved = 1;
+                                callback(null, restaurants);
+                            } else {
+                                console.log('DB Fetch2 render skip')
+                            }
+                        })
+                        .catch(e => callback(e, null));
+                });
+
+        });
+    }
+
+
+
+    static fetchReviews()
+    {
+        console.log('fetch reviews');
+
+        return fetch(DBHelper.getUrl() + 'reviews')
             .then(DBHelper.handleErrors)
             .then(function (response) {
                 let a = response.json();
-                console.log('DB Fetch1 response', a);
+                console.log('DB Fetch reviews response', a);
+
                 return a;
             })
-            .then(restaurants => DBHelper.storeInDB(restaurants))
-            .then(function (restaurants) {
-                if (!DBHelper.resolved) {
-                    DBHelper.resolved = 1;
-                    callback(null, restaurants);
-                } else {
-                    console.log('DB Fetch render1 skip')
-                }
+            .then(function (a) {
+                let data = [];
+
+                a.forEach(function(rev) {
+                    if (!data[rev.restaurant_id]) {
+                        data[rev.restaurant_id] = [];
+                    }
+
+                    data[rev.restaurant_id].push( {
+                        "restaurant_id": parseInt(rev.restaurant_id),
+                        "name": rev.name,
+                        "rating": parseInt(rev.rating),
+                        "comments": rev.comments,
+                        "date": rev.date != undefined ? rev.date : rev.createdAt
+                    });
+
+                });
+
+                data.forEach(function(r, k) {
+                    //console.log(r, k);
+
+                    DBHelper.db.restaurants.where('id').equals(k).modify(function (o) { o.reviews = r}).catch(e => console.log(e));
+                });
             })
             .catch(function (error) {
                 console.log('Error: remote request failed, getting data from local file', error);
-
-                fetch(DBHelper.getFile())
-                    .then(DBHelper.handleErrors)
-                    .then(function (response) {
-                        let a = response.json();
-                        console.log('DB Fetch2 response', a);
-                        return a;
-                    })
-                    .then(restaurants => DBHelper.storeInDB(restaurants.restaurants))
-                    .then(function (restaurants) {
-                        if (!DBHelper.resolved) {
-                            DBHelper.resolved = 1;
-                            callback(null, restaurants);
-                        } else {
-                            console.log('DB Fetch2 render skip')
-                        }
-                    })
-                    .catch(e => callback(e, null));
-            })
+            });
     }
 
-    static handleErrors(response) {
+
+    static handleErrors(response)
+    {
         if (!response.ok) {
             throw Error(response.statusText);
         }
@@ -78,7 +135,8 @@ class DBHelper
         return response;
     }
 
-    static storeInDB(restaurants) {
+    static storeInDB(restaurants)
+    {
         DBHelper.db.restaurants
             .where('id').above(0)
             .delete();
@@ -94,7 +152,8 @@ class DBHelper
     /**
      * Fetch a restaurant by its ID.
      */
-    static fetchRestaurantById(id, callback) {
+    static fetchRestaurantById(id, callback)
+    {
         // fetch all restaurants with proper error handling.
         DBHelper.fetchRestaurants((error, restaurants) => {
             if (error) {
@@ -109,6 +168,95 @@ class DBHelper
             }
         });
     }
+
+
+    static updateFavorite(id, fav)
+    {
+        // update local
+        DBHelper.db.restaurants.where('id').equals(id).modify({'is_favorite': fav})
+            .catch(e => console.log(e));
+
+        // update remote
+        fetch(DBHelper.getUrl() + 'restaurants/' + id + '/?is_favorite=' + fav, {method: 'PUT'})
+            .catch(function (error) {
+                console.log('Error: remote request failed', error);
+            });
+
+    }
+
+
+    static addReview(event, form)
+    {
+        event.preventDefault();
+        const id = form.id.value;
+
+        let fail = false;
+        let data = {
+            "restaurant_id": parseInt(id),
+            "name": form.name.value,
+            "rating": parseInt(form.rating.value),
+            "comments": form.review.value,
+        };
+
+
+        // update remote
+        fetch(DBHelper.getUrl() + 'reviews/', {
+            method: 'post',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+            .then(res => console.log('review  posted', res.json()))
+            .catch(function (error) {
+                fail = true;
+                console.log('Error: remote request failed', error);
+            })
+            .then(function() {
+
+            // update local
+            data.flag = fail;
+
+            DBHelper.db.restaurants.where('id').equals(id).modify(function (o) {o.reviews.push(data)}).catch(e => console.log(e));
+        });
+        //.then(window.location.reload());
+
+
+
+        return false;
+    }
+
+
+    static pushReviewsIfNeeded(restaurants)
+    {
+        console.log('check for offline data');
+
+        restaurants.forEach(function(r) {
+            if (r.reviews != undefined) {
+                r.reviews.forEach(function (e) {
+                    if (e.flag) {
+                        console.log('offline data found, submitting', e);
+                        // update remote
+                        fetch(DBHelper.getUrl() + 'reviews/', {
+                            method: 'post',
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(e)
+                        })
+                            .then(res => console.log('review  posted', res.json()))
+                            .catch(function (error) {
+                                console.log('Error: remote request failed', error);
+                            });
+                    }
+                });
+            }
+        });
+    }
+
+
 
     /**
      * Fetch restaurants by a cuisine type with proper error handling.
@@ -145,15 +293,17 @@ class DBHelper
     /**
      * Fetch restaurants by a cuisine and a neighborhood with proper error handling.
      */
-    static fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, callback) {
+    static fetchRestaurantByCuisineAndNeighborhood(cuisine, neighborhood, favorite, callback) {
         // Fetch all restaurants
         DBHelper.fetchRestaurants((error, restaurants) => {
             if (error) {
                 callback(error, null);
             } else {
                 let results = restaurants;
-                if (cuisine != 'all'
-                ) { // filter by cuisine
+                if (favorite == '1') {
+                    results = results.filter(r => r.is_favorite == 1);
+                }
+                if (cuisine != 'all') { // filter by cuisine
                     results = results.filter(r => r.cuisine_type == cuisine);
                 }
                 if (neighborhood != 'all') { // filter by neighborhood
