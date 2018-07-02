@@ -22,44 +22,45 @@ class DBHelper
             restaurants: '++id, name, neighborhood, cuisine_type'
         });
 
+        // Fetch from IDB
         db.restaurants.toArray().then(function(restaurants) {
             console.log('IDB data ', restaurants);
             if (restaurants.length > 0) {
-                DBHelper.resolved = 1;
 
                 callback(null, restaurants);
+                DBHelper.resolved = 1;
             } else {
                 console.log('IDB empty, fetch needed');
             }
         }).catch(function(error) {
             console.log('IDB get err', error);
-        }).then(function() {
-            fetch(DBHelper.getUrl() + 'restaurants')
-                .then(DBHelper.handleErrors)
-                .then(function (response) {
-                    let a = response.json();
-                    console.log('DB Fetch1 response', a);
-                    return a;
-                })
-                .then(restaurants => DBHelper.storeInDB(restaurants))
-                .then(function (restaurants) {
-                    // push offline data
-                    DBHelper.pushReviewsIfNeeded(restaurants);
+        });
 
-                    if (!DBHelper.resolved) {
-                        DBHelper.resolved = 1;
+        // Fetch from remote (update IDB if remote is available)
+        fetch(DBHelper.getUrl() + 'restaurants')
+            .then(DBHelper.handleErrors)
+            .then(function (response) {
+                let a = response.json();
+                console.log('DB Fetch1 response', a);
+                return a;
+            })
+            .then(restaurants => DBHelper.storeInDB(restaurants))
+            .then(restaurants => DBHelper.fetchReviews(restaurants)) // fetch reviews
+            .then(restaurants => DBHelper.pushReviewsIfNeeded(restaurants)) // push offline data
+            .then(function (restaurants) {
+                if (!DBHelper.resolved) {
+                    DBHelper.resolved = 1;
 
-                        callback(null, restaurants);
-                    } else {
-                        console.log('DB Fetch render1 skip')
-                    }
+                    return callback(null, restaurants);
+                } else {
+                    console.log('DB Fetch render1 skip')
+                }
+            })
+            .catch(function (error) {
+                console.log('Error: remote request failed, getting data from local file', error);
 
-                    return restaurants;
-                })
-                .then(restaurants => DBHelper.fetchReviews(restaurants)) // fetch reviews
-                .catch(function (error) {
-                    console.log('Error: remote request failed, getting data from local file', error);
-
+                // only fetch the json file if IDB was not able to resolve the request and API is offline
+                if (!DBHelper.resolved) {
                     fetch(DBHelper.getFile())
                         .then(DBHelper.handleErrors)
                         .then(function (response) {
@@ -77,14 +78,13 @@ class DBHelper
                             }
                         })
                         .catch(e => callback(e, null));
-                });
-
-        });
+                }
+            });
     }
 
 
 
-    static fetchReviews()
+    static fetchReviews(restaurants)
     {
         console.log('fetch reviews');
 
@@ -118,10 +118,16 @@ class DBHelper
                     //console.log(r, k);
 
                     DBHelper.db.restaurants.where('id').equals(k).modify(function (o) { o.reviews = r}).catch(e => console.log(e));
+                    if (restaurants[k]) {
+                        restaurants[k].reviews = r;
+                    }
                 });
+
+                return restaurants;
             })
             .catch(function (error) {
                 console.log('Error: remote request failed, getting data from local file', error);
+                return restaurants;
             });
     }
 
@@ -254,6 +260,9 @@ class DBHelper
                 });
             }
         });
+
+        // no update needed for the review because it will be pulled and overwritten from the remote anyway.
+        return restaurants;
     }
 
 

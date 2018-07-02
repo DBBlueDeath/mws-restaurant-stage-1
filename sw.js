@@ -2,6 +2,8 @@ const version = '0.9.4';
 let cn = 'mws-3-'  + version;
 let fcn = 'f-mws-3-'  + version;
 
+
+// we'll put these files to local cache
 const urlsToCache = [
     './',
     './index.html',
@@ -27,6 +29,7 @@ const urlsToCache = [
 
 
 
+// install service worker
 self.addEventListener('install', function (event) {
     console.log('Install ' + version);
 
@@ -37,26 +40,27 @@ self.addEventListener('install', function (event) {
     );
 });
 
+// activate service worker
 self.addEventListener('activate', event => {
     console.log('Activate ' + version);
     event.waitUntil(self.clients.claim());
 
     let cacheWhitelist = [cn];
     event.waitUntil(
-        caches.keys().then(function(cacheNames) {
-                  return Promise.all(
-                        cacheNames.map(function(cacheName) {
-                              if (cacheWhitelist.indexOf(cacheName) === -1) {
-                                    return caches.delete(cacheName);
-                                  }
-                            })
-                      );
+        caches.keys().then(function (cacheNames) {
+            return Promise.all(
+                cacheNames.map(function (cacheName) {
+                    if (cacheWhitelist.indexOf(cacheName) === -1) {
+                        return caches.delete(cacheName);
+                    }
                 })
+            );
+        })
     );
 });
 
 
-
+// catch fetch requests -- caching
 self.addEventListener('fetch', function (event) {
     console.log('Fetch: ', event.request.url);
     let requestUrl = new URL(event.request.url);
@@ -66,7 +70,7 @@ self.addEventListener('fetch', function (event) {
     }
 
     if (requestUrl.origin === location.origin) {
-// First look in network for the freshest resources
+    // First look in network for the freshest resources
 
         let response = fetch(event.request).then(function (networkResponse) {
             let responseToStore = networkResponse.clone();
@@ -77,8 +81,7 @@ self.addEventListener('fetch', function (event) {
 
             return networkResponse;
         }).catch(function (error) {
-// Network error, try to find resource in cache
-
+            // Network error, try to find resource in cache
             return caches.open(cn).then(function (cache) {
                 return cache.match(event.request);
             });
@@ -90,8 +93,7 @@ self.addEventListener('fetch', function (event) {
     }
 
 
-// Foreign requests, like google maps and analytics
-
+    // Foreign requests, like google maps and analytics
     event.respondWith(
         caches.open(fcn).then(function (cache) {
             return cache.match(event.request).then(function (cachedResponse) {
